@@ -175,6 +175,7 @@ public class MainActivity extends Activity {
         // Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
+        BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
 
         // The new size we want to scale to
         final int REQUIRED_SIZE = 400;
