@@ -92,7 +92,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
         return NULL;
     }
 
-    mtcnn->SetMinFace(40);
+    mtcnn->SetMinFace(160);
 
     unsigned char *faceImageCharDate = (unsigned char*)imageDate;
     ncnn::Mat ncnn_img;

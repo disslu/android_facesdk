@@ -82,7 +82,7 @@ public class MainActivity extends Activity {
         }
         //模型初始化
         File sdDir = Environment.getExternalStorageDirectory();//获取跟目录
-        String sdPath = sdDir.toString() + "/mtcnn/";
+        String sdPath = sdDir.toString() + "/facesdk/";
         faceSDKNative.FaceDetectionModelInit(sdPath);
 
 
@@ -174,29 +174,29 @@ public class MainActivity extends Activity {
     private Bitmap decodeUri(Uri selectedImage) throws FileNotFoundException {
         // Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
+        //o.inJustDecodeBounds = true;
+        return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
 
         // The new size we want to scale to
-        final int REQUIRED_SIZE = 400;
+        //final int REQUIRED_SIZE = 800;
 
-        // Find the correct scale value. It should be the power of 2.
-        int width_tmp = o.outWidth, height_tmp = o.outHeight;
-        int scale = 1;
-        while (true) {
-            if (width_tmp / 2 < REQUIRED_SIZE
-                    || height_tmp / 2 < REQUIRED_SIZE) {
-                break;
-            }
-            width_tmp /= 2;
-            height_tmp /= 2;
-            scale *= 2;
-        }
+        //// Find the correct scale value. It should be the power of 2.
+        //int width_tmp = o.outWidth, height_tmp = o.outHeight;
+        //int scale = 1;
+        //while (true) {
+        //    if (width_tmp / 2 < REQUIRED_SIZE
+        //            || height_tmp / 2 < REQUIRED_SIZE) {
+        //        break;
+        //    }
+        //    width_tmp /= 2;
+        //    height_tmp /= 2;
+        //    scale *= 2;
+        //}
 
-        // Decode with inSampleSize
-        BitmapFactory.Options o2 = new BitmapFactory.Options();
-        o2.inSampleSize = scale;
-        return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o2);
+        //// Decode with inSampleSize
+        //BitmapFactory.Options o2 = new BitmapFactory.Options();
+        //o2.inSampleSize = scale;
+        //return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o2);
     }
 
     private byte[] getPixelsRGBA(Bitmap image) {
@@ -212,19 +212,19 @@ public class MainActivity extends Activity {
     private void copyBigDataToSD(String strOutFileName) throws IOException {
         Log.i(TAG, "start copy file " + strOutFileName);
         File sdDir = Environment.getExternalStorageDirectory();//get root dir
-        File file = new File(sdDir.toString()+"/mtcnn/");
+        File file = new File(sdDir.toString()+"/facesdk/");
         if (!file.exists()) {
             file.mkdir();
         }
 
-        String tmpFile = sdDir.toString()+"/mtcnn/" + strOutFileName;
+        String tmpFile = sdDir.toString()+"/facesdk/" + strOutFileName;
         File f = new File(tmpFile);
         if (f.exists()) {
             Log.i(TAG, "file exists " + strOutFileName);
             return;
         }
         InputStream myInput;
-        java.io.OutputStream myOutput = new FileOutputStream(sdDir.toString()+"/mtcnn/"+ strOutFileName);
+        java.io.OutputStream myOutput = new FileOutputStream(sdDir.toString()+"/facesdk/"+ strOutFileName);
         myInput = this.getAssets().open(strOutFileName);
         byte[] buffer = new byte[1024];
         int length = myInput.read(buffer);
