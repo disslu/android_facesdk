@@ -174,29 +174,28 @@ public class MainActivity extends Activity {
     private Bitmap decodeUri(Uri selectedImage) throws FileNotFoundException {
         // Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
-        //o.inJustDecodeBounds = true;
-        return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
+        o.inJustDecodeBounds = true;
 
         // The new size we want to scale to
-        //final int REQUIRED_SIZE = 800;
+        final int REQUIRED_SIZE = 400;
 
         //// Find the correct scale value. It should be the power of 2.
-        //int width_tmp = o.outWidth, height_tmp = o.outHeight;
-        //int scale = 1;
-        //while (true) {
-        //    if (width_tmp / 2 < REQUIRED_SIZE
-        //            || height_tmp / 2 < REQUIRED_SIZE) {
-        //        break;
-        //    }
-        //    width_tmp /= 2;
-        //    height_tmp /= 2;
-        //    scale *= 2;
-        //}
+        int width_tmp = o.outWidth, height_tmp = o.outHeight;
+        int scale = 1;
+        while (true) {
+            if (width_tmp / 2 < REQUIRED_SIZE
+                    || height_tmp / 2 < REQUIRED_SIZE) {
+                break;
+            }
+            width_tmp /= 2;
+            height_tmp /= 2;
+            scale *= 2;
+        }
 
         //// Decode with inSampleSize
-        //BitmapFactory.Options o2 = new BitmapFactory.Options();
-        //o2.inSampleSize = scale;
-        //return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o2);
+        BitmapFactory.Options o2 = new BitmapFactory.Options();
+        o2.inSampleSize = scale;
+        return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o2);
     }
 
     private byte[] getPixelsRGBA(Bitmap image) {
