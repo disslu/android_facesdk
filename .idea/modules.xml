@@ -3,9 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/android_face_sdk.iml" filepath="$PROJECT_DIR$/android_face_sdk.iml" />
-      <module fileurl="file://D:\pf\projects\mobile\android_face_sdk\android_face_sdk.iml" filepath="D:\pf\projects\mobile\android_face_sdk\android_face_sdk.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://D:\pf\projects\mobile\android_face_sdk\app\app.iml" filepath="D:\pf\projects\mobile\android_face_sdk\app\app.iml" />
       <module fileurl="file://D:\pf\projects\mobile\android_face_sdk\mtcnn_AS.iml" filepath="D:\pf\projects\mobile\android_face_sdk\mtcnn_AS.iml" />
     </modules>
   </component>

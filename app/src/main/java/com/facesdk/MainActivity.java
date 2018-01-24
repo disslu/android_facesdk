@@ -133,6 +133,13 @@ public class MainActivity extends Activity {
                        paint.setStyle(Paint.Style.STROKE);
                        paint.setStrokeWidth(5);
                        canvas.drawRect(left, top, right, bottom, paint);
+
+                       //Draw landmark
+                       for (int j=0; j<5; j++) {
+                           int pointX = faceInfo[5+j+14*i];
+                           int pointY = faceInfo[5+j+5+14*i];
+                           canvas.drawCircle(pointX, pointY, 2, paint);
+                       }
                    }
                    imageView.setImageBitmap(drawBitmap);
                 }else{

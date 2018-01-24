@@ -122,7 +122,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
         faceInfo[14*i+3] = finalBbox[i].x2;//right
         faceInfo[14*i+4] = finalBbox[i].y2;//bottom
         for (int j =0; j<10; j++) {
-            faceInfo[14*i+5] = static_cast<int>(finalBbox[i].ppoint[j]);
+            faceInfo[14*i+5+j] = static_cast<int>(finalBbox[i].ppoint[j]);
         }
     }
 
