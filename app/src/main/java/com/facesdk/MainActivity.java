@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
             verifyPermissions(this);
         //}
 
-        //拷贝模型到sk卡
+        //copy model
         try {
             copyBigDataToSD("det1.bin");
             copyBigDataToSD("det2.bin");
@@ -80,8 +80,8 @@ public class MainActivity extends Activity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        //模型初始化
-        File sdDir = Environment.getExternalStorageDirectory();//获取跟目录
+
+        File sdDir = Environment.getExternalStorageDirectory();//get model store dir
         String sdPath = sdDir.toString() + "/facesdk/";
         faceSDKNative.FaceDetectionModelInit(sdPath);
 
@@ -105,20 +105,21 @@ public class MainActivity extends Activity {
             public void onClick(View arg0) {
                 if (yourSelectedImage == null)
                     return;
-                //检测流程
                 int width = yourSelectedImage.getWidth();
                 int height = yourSelectedImage.getHeight();
                 byte[] imageDate = getPixelsRGBA(yourSelectedImage);
 
                 long timeDetectFace = System.currentTimeMillis();
+                //do FaceDetect
                 int faceInfo[] =  faceSDKNative.FaceDetect(imageDate, width, height,4);
                 timeDetectFace = System.currentTimeMillis() - timeDetectFace;
 
+                //Get Results
                if (faceInfo.length>1) {
                    int faceNum = faceInfo[0];
-                   infoResult.setText("人脸检测时间："+timeDetectFace+" 人脸数目：" + faceNum);
-                   Log.i(TAG, "人脸检测时间："+timeDetectFace);
-                   Log.i(TAG, " 检测到的人脸数目：" + faceNum );
+                   infoResult.setText("detect time："+timeDetectFace+"ms face number：" + faceNum);
+                   Log.i(TAG, "detect time："+timeDetectFace);
+                   Log.i(TAG, "face num：" + faceNum );
 
                    Bitmap drawBitmap = yourSelectedImage.copy(Bitmap.Config.ARGB_8888, true);
                    for (int i=0; i<faceNum; i++) {
@@ -132,6 +133,7 @@ public class MainActivity extends Activity {
                        paint.setColor(Color.RED);
                        paint.setStyle(Paint.Style.STROKE);
                        paint.setStrokeWidth(5);
+                       //Draw rect
                        canvas.drawRect(left, top, right, bottom, paint);
 
                        //Draw landmark
@@ -143,7 +145,7 @@ public class MainActivity extends Activity {
                    }
                    imageView.setImageBitmap(drawBitmap);
                 }else{
-                   infoResult.setText("未检测到人脸");
+                   infoResult.setText("no face found");
                }
 
             }

@@ -127,8 +127,10 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
     }
 
     jintArray tFaceInfo = env->NewIntArray(out_size);
-    env->SetIntArrayRegion(tFaceInfo,0,out_size,faceInfo);
+    env->SetIntArrayRegion(tFaceInfo, 0, out_size, faceInfo);
     env->ReleaseByteArrayElements(imageDate_, imageDate, 0);
+
+    delete faceInfo;
 
     return tFaceInfo;
 }
