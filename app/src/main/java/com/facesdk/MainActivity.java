@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
                 //Get Results
                if (faceInfo.length>1) {
                    int faceNum = faceInfo[0];
-                   infoResult.setText("detect time："+timeDetectFace+"ms face number：" + faceNum);
+                   infoResult.setText("detect time："+timeDetectFace+"ms,   face number：" + faceNum);
                    Log.i(TAG, "detect time："+timeDetectFace);
                    Log.i(TAG, "face num：" + faceNum );
 

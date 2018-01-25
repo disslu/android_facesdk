@@ -19,27 +19,27 @@ extern "C" {
 JNIEXPORT jboolean JNICALL
 Java_com_facesdk_FaceSDKNative_FaceDetectionModelInit(JNIEnv *env, jobject instance,
                                                       jstring faceDetectionModelPath_) {
-    LOGD("JNI开始人脸检测SDK初始化");
+    LOGD("JNI init native sdk");
     if (detection_sdk_init_ok) {
-        LOGD("人脸检测SDK已经初始化");
+        LOGD("sdk already init");
         return true;
     }
     jboolean tRet = false;
     if (NULL == faceDetectionModelPath_) {
-        LOGD("导入的人脸检测的目录为空");
+        LOGD("model dir is empty");
         return tRet;
     }
 
     //获取模型的绝对路径的目录（不是/aaa/bbb.bin这样的路径，是/aaa/)
     const char *faceDetectionModelPath = env->GetStringUTFChars(faceDetectionModelPath_, 0);
     if (NULL == faceDetectionModelPath) {
-        LOGD("导入的人脸检测的目录为空");
+        LOGD("model dir is empty");
         return tRet;
     }
 
     string tFaceModelDir = faceDetectionModelPath;
     string tLastChar = tFaceModelDir.substr(tFaceModelDir.length()-1, 1);
-    //目录补齐/
+    //adjust dir
     if ("\\" == tLastChar) {
         tFaceModelDir = tFaceModelDir.substr(0, tFaceModelDir.length() - 1) + "/";
     } else if (tLastChar != "/") {
@@ -60,39 +60,38 @@ JNIEXPORT jintArray JNICALL
 Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteArray imageDate_,
                                           jint imageWidth, jint imageHeight, jint imageChannel) {
     if(!detection_sdk_init_ok){
-        LOGD("人脸检测SDK未初始化，直接返回空");
+        LOGD("sdk not init");
         return NULL;
     }
 
     int tImageDateLen = env->GetArrayLength(imageDate_);
     if(imageChannel == tImageDateLen / imageWidth / imageHeight){
-        LOGD("数据宽=%d,高=%d,通道=%d",imageWidth,imageHeight,imageChannel);
+        LOGD("imgW=%d, imgH=%d,imgC=%d",imageWidth,imageHeight,imageChannel);
     }
     else{
-        LOGD("数据长宽高通道不匹配，直接返回空");
+        LOGD("img data format error");
         return NULL;
     }
 
     jbyte *imageDate = env->GetByteArrayElements(imageDate_, NULL);
     if (NULL == imageDate){
-        LOGD("导入数据为空，直接返回空");
+        LOGD("img data is null");
         return NULL;
     }
 
-    if(imageWidth<80||imageHeight<80){
-        LOGD("导入数据的宽和高小于80，直接返回空");
+    if(imageWidth<200||imageHeight<200){
+        LOGD("img is too small");
         return NULL;
     }
 
     //TODO 通道需测试
     if(3 == imageChannel || 4 == imageChannel){
-        //图像通道数只能是3或4；
     }else{
-        LOGD("图像通道数只能是3或4，直接返回空");
+        LOGD("img data format error, channel just support 3 or 4");
         return NULL;
     }
 
-    mtcnn->SetMinFace(160);
+    mtcnn->SetMinFace(120);
 
     unsigned char *faceImageCharDate = (unsigned char*)imageDate;
     ncnn::Mat ncnn_img;
@@ -141,7 +140,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetectionModelUnInit(JNIEnv *env, jobject ins
     jboolean tDetectionUnInit = false;
 
     if (!detection_sdk_init_ok) {
-        LOGD("人脸检测SDK已经释放或者未初始化");
+        LOGD("sdk not inited, do nothing");
         return true;
     }
 
@@ -151,7 +150,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetectionModelUnInit(JNIEnv *env, jobject ins
 
     tDetectionUnInit = true;
 
-    LOGD("人脸检测SDK释放成功");
+    LOGD("sdk release ok");
 
     return tDetectionUnInit;
 }
