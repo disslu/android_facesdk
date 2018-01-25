@@ -37,6 +37,8 @@ for (int i=0; i<faceNum; i++) {
 
 # Application examples
 
-![](https://github.com/pingfengluo/android_facesdk/raw/master/test_data/tester1.png)
 
-![](https://github.com/pingfengluo/android_facesdk/raw/master/test_data/tester2.png)
+<img src="https://github.com/pingfengluo/android_facesdk/raw/master/test_data/tester1.png" width="360" height="640">
+
+<img src="https://github.com/pingfengluo/android_facesdk/raw/master/test_data/tester2.png" width="360" height="640">
+
