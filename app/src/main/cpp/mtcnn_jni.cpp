@@ -19,18 +19,18 @@ extern "C" {
 JNIEXPORT jboolean JNICALL
 Java_com_facesdk_FaceSDKNative_FaceDetectionModelInit(JNIEnv *env, jobject instance,
                                                       jstring faceDetectionModelPath_) {
+    jboolean tRet = false;
     LOGD("JNI init native sdk");
     if (detection_sdk_init_ok) {
         LOGD("sdk already init");
-        return true;
+        return tRet;
     }
-    jboolean tRet = false;
     if (NULL == faceDetectionModelPath_) {
         LOGD("model dir is empty");
         return tRet;
     }
 
-    //获取模型的绝对路径的目录（不是/aaa/bbb.bin这样的路径，是/aaa/)
+    //get abs path（should not be /aaa/bbb.bin，but /aaa/)
     const char *faceDetectionModelPath = env->GetStringUTFChars(faceDetectionModelPath_, 0);
     if (NULL == faceDetectionModelPath) {
         LOGD("model dir is empty");
@@ -41,7 +41,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetectionModelInit(JNIEnv *env, jobject insta
     string tLastChar = tFaceModelDir.substr(tFaceModelDir.length()-1, 1);
     //adjust dir
     if ("\\" == tLastChar) {
-        tFaceModelDir = tFaceModelDir.substr(0, tFaceModelDir.length() - 1) + "/";
+        tFaceModelDir = tFaceModelDir.substr(0, tFaceModelDir.length()-1) + "/";
     } else if (tLastChar != "/") {
         tFaceModelDir += "/";
     }
@@ -66,7 +66,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
 
     int tImageDateLen = env->GetArrayLength(imageDate_);
     if(imageChannel == tImageDateLen / imageWidth / imageHeight){
-        LOGD("imgW=%d, imgH=%d,imgC=%d",imageWidth,imageHeight,imageChannel);
+        LOGD("imgW=%d, imgH=%d,imgC=%d",imageWidth, imageHeight, imageChannel);
     }
     else{
         LOGD("img data format error");
@@ -84,16 +84,17 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
         return NULL;
     }
 
-    //TODO 通道需测试
+    //TODO channel valid
     if(3 == imageChannel || 4 == imageChannel){
-    }else{
+    }
+    else{
         LOGD("img data format error, channel just support 3 or 4");
         return NULL;
     }
 
     mtcnn->SetMinFace(120);
 
-    unsigned char *faceImageCharDate = (unsigned char*)imageDate;
+    unsigned char *faceImageCharDate = (unsigned char*) imageDate;
     ncnn::Mat ncnn_img;
     if (imageChannel==3) {
         ncnn_img = ncnn::Mat::from_pixels(faceImageCharDate,
@@ -120,6 +121,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
         faceInfo[14*i+2] = finalBbox[i].y1;//top
         faceInfo[14*i+3] = finalBbox[i].x2;//right
         faceInfo[14*i+4] = finalBbox[i].y2;//bottom
+        //store 5 keypoints [x0,x1,x2,x3,x4,y0,y1,y2,y3,y4]
         for (int j =0; j<10; j++) {
             faceInfo[14*i+5+j] = static_cast<int>(finalBbox[i].ppoint[j]);
         }
