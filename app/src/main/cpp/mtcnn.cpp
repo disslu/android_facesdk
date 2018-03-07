@@ -256,7 +256,7 @@ void MTCNN::RNet()
         ncnn::Mat score, bbox;
         ex.extract("prob1", score);
         ex.extract("conv5-2", bbox);
-        if(*(score.data+score.cstep) > threshold[1]){
+        if(*((unsigned char *)score.data+score.cstep) > threshold[1]){
             for(int channel=0;channel<4;channel++){
                 it->regreCoord[channel]=bbox.channel(channel)[0];//*(bbox.data+channel*bbox.cstep);
             }
