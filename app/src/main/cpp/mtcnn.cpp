@@ -257,7 +257,7 @@ void MTCNN::RNet()
                 it->regreCoord[channel]=(float)bbox[channel];//*(bbox.data+channel*bbox.cstep);
             }
             it->area = (it->x2 - it->x1)*(it->y2 - it->y1);
-            it->score = score.channel(1)[0];//*(score.data+score.cstep);
+            it->score = (float)score[1];//*(score.data+score.cstep);
             secondBbox_.push_back(*it);
         }
     }
@@ -287,8 +287,8 @@ void MTCNN::ONet()
             it->area = (it->x2 - it->x1) * (it->y2 - it->y1);
             it->score = score.channel(1)[0];
             for (int num=0; num<5; num++) {
-                (it->ppoint)[num] = it->x1 + (it->x2 - it->x1) * keyPoint.channel(num)[0];
-                (it->ppoint)[num+5] = it->y1 + (it->y2 - it->y1) * keyPoint.channel(num+5)[0];
+                (it->ppoint)[num] = it->x1 + (it->x2 - it->x1) * keyPoint[num];
+                (it->ppoint)[num+5] = it->y1 + (it->y2 - it->y1) * keyPoint[num+5];
             }
 
             thirdBbox_.push_back(*it);
