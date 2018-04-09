@@ -1,4 +1,5 @@
 #include "mtcnn.h"
+#include "cpu.h"
 
 bool cmpScore(Bbox lsh, Bbox rsh)
 {
@@ -11,6 +12,7 @@ bool cmpScore(Bbox lsh, Bbox rsh)
 MTCNN::MTCNN(const string &model_path)
 {
 
+    ncnn::set_cpu_powersave(2);
     std::vector<std::string> param_files = {
             model_path+"/det1.param",
             model_path+"/det2.param",
@@ -220,9 +222,14 @@ void MTCNN::PNet(){
         ncnn::Mat in;
         resize_bilinear(img, in, ws, hs);
         ncnn::Extractor ex = Pnet.create_extractor();
-        ex.set_num_threads(4);
+        //ex.set_num_threads(4);
         ex.set_light_mode(true);
         ex.input("data", in);
+        if (i ==0 ) {
+            ncnn::Mat data_, score_;
+            ex.extract("data", data_);
+            ex.extract("prob1", score_);
+        }
         ncnn::Mat score_, location_;
         ex.extract("prob1", score_);
         ex.extract("conv4-2", location_);
@@ -246,7 +253,7 @@ void MTCNN::RNet()
         ncnn::Mat in;
         resize_bilinear(tempIm, in, 24, 24);
         ncnn::Extractor ex = Rnet.create_extractor();
-        ex.set_num_threads(4);
+        //ex.set_num_threads(4);
         ex.set_light_mode(true);
         ex.input("data", in);
         ncnn::Mat score, bbox;
@@ -273,7 +280,7 @@ void MTCNN::ONet()
         ncnn::Mat in;
         resize_bilinear(tempIm, in, 48, 48);
         ncnn::Extractor ex = Onet.create_extractor();
-        ex.set_num_threads(4);
+        //ex.set_num_threads(4);
         ex.set_light_mode(true);
         ex.input("data", in);
         ncnn::Mat score, bbox, keyPoint;

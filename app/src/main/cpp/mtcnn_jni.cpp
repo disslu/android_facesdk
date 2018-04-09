@@ -5,6 +5,7 @@
 #include <vector>
 #include "net.h"
 #include "mtcnn.h"
+#include "cpu.h"
 
 #define TAG "FaceSDKNative"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
@@ -108,10 +109,18 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
                                           imageHeight);
     }
 
+    int cpu_p =  ncnn::get_cpu_powersave();
+    LOGD("Native cpu power  =%d", cpu_p);
+
+    int num_t =  ncnn::get_omp_num_threads();
+    LOGD("Native number thread  =%d", num_t);
+
     std::vector<Bbox> finalBbox;
     mtcnn->detect(ncnn_img, finalBbox);
 
     int32_t num_face = static_cast<int32_t>(finalBbox.size());
+
+    LOGD("Native detected face number =%d", num_face);
 
     int out_size = 1+num_face*14;
     int *faceInfo = new int[out_size];

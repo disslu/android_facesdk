@@ -19,8 +19,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.common.api.GoogleApiClient;
+//import com.google.android.gms.appindexing.AppIndex;
+//import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -29,21 +29,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import static android.content.ContentValues.TAG;
-
 public class MainActivity extends Activity {
     private static final int SELECT_IMAGE = 1;
+    static final String TAG = "MainActivity";
 
     private TextView infoResult;
     private ImageView imageView;
     private Bitmap yourSelectedImage = null;
 
-    private FaceSDKNative faceSDKNative = new FaceSDKNative();
+    private static FaceSDKNative faceSDKNative = new FaceSDKNative();
+    private static boolean sdk_init_ok = false;
+    private static boolean sdk_model_ok = true;
+    private static boolean sdk_permission_ok = true;
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
-    private GoogleApiClient client;
+    //private GoogleApiClient client;
 
     //Check Permissions
     private static final int REQUEST_CODE_PERMISSION = 2;
@@ -66,7 +68,7 @@ public class MainActivity extends Activity {
         int currentapiVersion = android.os.Build.VERSION.SDK_INT;
 
         //if (currentapiVersion >= Build.VERSION_CODES.M) {
-            verifyPermissions(this);
+        sdk_permission_ok = verifyPermissions(this);
         //}
 
         //copy model
@@ -79,11 +81,12 @@ public class MainActivity extends Activity {
             copyBigDataToSD("det3.param");
         } catch (IOException e) {
             e.printStackTrace();
+            sdk_model_ok = false;
         }
 
         File sdDir = Environment.getExternalStorageDirectory();//get model store dir
         String sdPath = sdDir.toString() + "/facesdk/";
-        faceSDKNative.FaceDetectionModelInit(sdPath);
+        sdk_init_ok = faceSDKNative.FaceDetectionModelInit(sdPath);
 
 
         infoResult = (TextView) findViewById(R.id.infoResult);
@@ -103,8 +106,10 @@ public class MainActivity extends Activity {
         buttonDetect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View arg0) {
-                if (yourSelectedImage == null)
+                if (yourSelectedImage == null) {
+                    infoResult.setText("no image found");
                     return;
+                }
                 int width = yourSelectedImage.getWidth();
                 int height = yourSelectedImage.getHeight();
                 byte[] imageDate = getPixelsRGBA(yourSelectedImage);
@@ -115,7 +120,7 @@ public class MainActivity extends Activity {
                 timeDetectFace = System.currentTimeMillis() - timeDetectFace;
 
                 //Get Results
-               if (faceInfo !=null && faceInfo.length>1) {
+               if (faceInfo!=null && faceInfo.length>1) {
                    int faceNum = faceInfo[0];
                    infoResult.setText("detect time："+timeDetectFace+"ms,   face number：" + faceNum);
                    Log.i(TAG, "detect time："+timeDetectFace);
@@ -133,6 +138,15 @@ public class MainActivity extends Activity {
                        paint.setColor(Color.RED);
                        paint.setStyle(Paint.Style.STROKE);
                        paint.setStrokeWidth(5);
+                       //crop image
+                       //Bitmap cropBmp = faceSDKNative.CropImage(drawBitmap, left, top, right-left, bottom-top);
+
+                       //just for debug
+                       //faceSDKNative.SaveImage(cropBmp);
+
+                       //encode img to base64
+                       //String encodeImg = faceSDKNative.EncodeBase64(cropBmp);
+
                        //Draw rect
                        canvas.drawRect(left, top, right, bottom, paint);
 
@@ -142,17 +156,29 @@ public class MainActivity extends Activity {
                            int pointY = faceInfo[5+j+5+14*i];
                            canvas.drawCircle(pointX, pointY, 2, paint);
                        }
+
+
                    }
                    imageView.setImageBitmap(drawBitmap);
                 }else{
-                   infoResult.setText("no face found");
+                   String debug = "sdk error: no face found, \n";
+                   if(!sdk_init_ok) {
+                       debug += "sdk_init_error, may models not flush, please restart apk\n";
+                   }
+                   if(!sdk_model_ok) {
+                       debug +="sdk_model_copy, may not have write sdcar permission, please restart apk\n";
+                   }
+                   if(!sdk_permission_ok) {
+                       debug += "should access permission, please restart apk\n";
+                   }
+                   infoResult.setText(debug);
                }
 
             }
         });
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+        //client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
 
@@ -184,6 +210,7 @@ public class MainActivity extends Activity {
         // Decode image size
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
+        //o.inSampleSize = 1;
         BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
 
         // The new size we want to scale to
@@ -202,7 +229,7 @@ public class MainActivity extends Activity {
             scale *= 2;
         }
 
-        //// Decode with inSampleSize
+        // Decode with inSampleSize
         BitmapFactory.Options o2 = new BitmapFactory.Options();
         o2.inSampleSize = scale;
         return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o2);
@@ -218,7 +245,7 @@ public class MainActivity extends Activity {
         return temp;
     }
 
-    private void copyBigDataToSD(String strOutFileName) throws IOException {
+    private boolean copyBigDataToSD(String strOutFileName) throws IOException {
         Log.i(TAG, "start copy file " + strOutFileName);
         File sdDir = Environment.getExternalStorageDirectory();//get root dir
         File file = new File(sdDir.toString()+"/facesdk/");
@@ -230,7 +257,7 @@ public class MainActivity extends Activity {
         File f = new File(tmpFile);
         if (f.exists()) {
             Log.i(TAG, "file exists " + strOutFileName);
-            return;
+            return true;
         }
         InputStream myInput;
         java.io.OutputStream myOutput = new FileOutputStream(sdDir.toString()+"/facesdk/"+ strOutFileName);
@@ -245,7 +272,7 @@ public class MainActivity extends Activity {
         myInput.close();
         myOutput.close();
         Log.i(TAG, "end copy file " + strOutFileName);
-
+        return true;
     }
 
     /**
