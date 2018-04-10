@@ -229,7 +229,24 @@ void MTCNN::PNet(){
             ncnn::Mat data_, score_;
             ex.extract("data", data_);
             ex.extract("prob1", score_);
+            size_t d_total = data_.total();
+            if(d_total>10) d_total =10;
+            size_t s_total = score_.total();
+            if(s_total>10) s_total =10;
+            LOGD("\n\n\nData [");
+            for (int i=0; i<d_total; i++) {
+                LOGD(" %f", data_[i]);
+            }
+            LOGD("]\n\n\n");
+
+            LOGD("\n\n\nScore [");
+            for (int i=0; i<s_total; i++) {
+                LOGD(" %f", score_[i]);
+            }
+            LOGD("]\n\n\n");
+
         }
+
         ncnn::Mat score_, location_;
         ex.extract("prob1", score_);
         ex.extract("conv4-2", location_);

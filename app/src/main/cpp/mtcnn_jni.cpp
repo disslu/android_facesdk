@@ -1,5 +1,4 @@
 #include <android/bitmap.h>
-#include <android/log.h>
 #include <jni.h>
 #include <string>
 #include <vector>
@@ -7,8 +6,6 @@
 #include "mtcnn.h"
 #include "cpu.h"
 
-#define TAG "FaceSDKNative"
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
 
 using namespace std;
 
@@ -24,6 +21,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetectionModelInit(JNIEnv *env, jobject insta
     LOGD("JNI init native sdk");
     if (detection_sdk_init_ok) {
         LOGD("sdk already init");
+        tRet = true;
         return tRet;
     }
     if (NULL == faceDetectionModelPath_) {
@@ -110,10 +108,10 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
     }
 
     int cpu_p =  ncnn::get_cpu_powersave();
-    LOGD("Native cpu power  =%d", cpu_p);
+    LOGD("Native cpu power count  =%d", cpu_p);
 
     int num_t =  ncnn::get_omp_num_threads();
-    LOGD("Native number thread  =%d", num_t);
+    LOGD("Native number of thread  =%d", num_t);
 
     std::vector<Bbox> finalBbox;
     mtcnn->detect(ncnn_img, finalBbox);
@@ -140,7 +138,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
     env->SetIntArrayRegion(tFaceInfo, 0, out_size, faceInfo);
     env->ReleaseByteArrayElements(imageDate_, imageDate, 0);
 
-    delete faceInfo;
+    delete [] faceInfo;
 
     return tFaceInfo;
 }
