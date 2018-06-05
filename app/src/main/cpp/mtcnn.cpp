@@ -1,5 +1,6 @@
 #include "mtcnn.h"
 #include "cpu.h"
+#include <android/log.h>
 
 bool cmpScore(Bbox lsh, Bbox rsh)
 {
@@ -12,7 +13,6 @@ bool cmpScore(Bbox lsh, Bbox rsh)
 MTCNN::MTCNN(const string &model_path)
 {
 
-    ncnn::set_cpu_powersave(2);
     std::vector<std::string> param_files = {
             model_path+"/det1.param",
             model_path+"/det2.param",
@@ -31,6 +31,12 @@ MTCNN::MTCNN(const string &model_path)
     Rnet.load_model(bin_files[1].data());
     Onet.load_param(param_files[2].data());
     Onet.load_model(bin_files[2].data());
+    int cpu_powersave_init = ncnn::get_cpu_powersave();
+    ncnn::set_cpu_powersave(2);
+    int cpu_powersave_run = ncnn::get_cpu_powersave();
+
+    LOGD("facesdk init, cpu_powersave_init=%d cpu_powersave_run=%d", cpu_powersave_init, cpu_powersave_run);
+
 }
 
 MTCNN::MTCNN(const std::vector<std::string> param_files, const std::vector<std::string> bin_files)
@@ -51,9 +57,13 @@ MTCNN::~MTCNN()
     Onet.clear();
 }
 
-void MTCNN::SetMinFace(int minSize)
+void MTCNN::SetMinFace(int minFaceSize)
 {
-    minsize = minSize;
+    minsize = minFaceSize;
+}
+
+void MTCNN::SetNumThreads(int numThreads) {
+    num_threads = numThreads;
 }
 
 void MTCNN::generateBbox(ncnn::Mat score, ncnn::Mat location, std::vector<Bbox>& boundingBox_, float scale)
@@ -217,39 +227,28 @@ void MTCNN::PNet(){
     }
 
     for(size_t i = 0; i<scales_.size(); i++) {
-        int hs = (int)ceil(img_h*scales_[i]);
-        int ws = (int)ceil(img_w*scales_[i]);
+        int hs = std::ceil(img_h*scales_[i]);
+        int ws = std::ceil(img_w*scales_[i]);
+        //LOGD("i=%d ws=%d hs=%d img_w=%d img_h=%d scales_=%f",i, ws, hs, img_w, img_h, scales_[i]);
         ncnn::Mat in;
         resize_bilinear(img, in, ws, hs);
         ncnn::Extractor ex = Pnet.create_extractor();
-        //ex.set_num_threads(4);
-        ex.set_light_mode(true);
+        ex.set_num_threads(num_threads);
+        ex.set_light_mode(false);
         ex.input("data", in);
-        if (i ==0 ) {
-            ncnn::Mat data_, score_;
+        ncnn::Mat score_, location_, data_;
+        ex.extract("prob1", score_);
+        ex.extract("conv4-2", location_);
+
+        if (i ==0 || i ==2 ) {
             ex.extract("data", data_);
-            ex.extract("prob1", score_);
             size_t d_total = data_.total();
             if(d_total>10) d_total =10;
             size_t s_total = score_.total();
             if(s_total>10) s_total =10;
-            LOGD("\n\n\nData [");
-            for (int i=0; i<d_total; i++) {
-                LOGD(" %f", data_[i]);
-            }
-            LOGD("]\n\n\n");
-
-            LOGD("\n\n\nScore [");
-            for (int i=0; i<s_total; i++) {
-                LOGD(" %f", score_[i]);
-            }
-            LOGD("]\n\n\n");
 
         }
 
-        ncnn::Mat score_, location_;
-        ex.extract("prob1", score_);
-        ex.extract("conv4-2", location_);
         std::vector<Bbox> boundingBox_;
         generateBbox(score_, location_, boundingBox_, scales_[i]);
         nms(boundingBox_, nms_threshold[0]);
@@ -270,8 +269,8 @@ void MTCNN::RNet()
         ncnn::Mat in;
         resize_bilinear(tempIm, in, 24, 24);
         ncnn::Extractor ex = Rnet.create_extractor();
-        //ex.set_num_threads(4);
-        ex.set_light_mode(true);
+        ex.set_num_threads(num_threads);
+        ex.set_light_mode(false);
         ex.input("data", in);
         ncnn::Mat score, bbox;
         ex.extract("prob1", score);
@@ -297,8 +296,8 @@ void MTCNN::ONet()
         ncnn::Mat in;
         resize_bilinear(tempIm, in, 48, 48);
         ncnn::Extractor ex = Onet.create_extractor();
-        //ex.set_num_threads(4);
-        ex.set_light_mode(true);
+        ex.set_num_threads(num_threads);
+        ex.set_light_mode(false);
         ex.input("data", in);
         ncnn::Mat score, bbox, keyPoint;
         ex.extract("prob1", score);
@@ -309,7 +308,7 @@ void MTCNN::ONet()
                 it->regreCoord[channel]=(float)bbox[channel];
             }
             it->area = (it->x2 - it->x1) * (it->y2 - it->y1);
-            it->score = score.channel(1)[0];
+            it->score = (float)score[1];
             for (int num=0; num<5; num++) {
                 (it->ppoint)[num] = it->x1 + (it->x2 - it->x1) * keyPoint[num];
                 (it->ppoint)[num+5] = it->y1 + (it->y2 - it->y1) * keyPoint[num+5];
@@ -323,8 +322,8 @@ void MTCNN::ONet()
 void MTCNN::detect(ncnn::Mat& img_, std::vector<Bbox>& finalBbox_)
 {
     img = img_;
-    img_w = img.w;
-    img_h = img.h;
+    img_w = img_.w;
+    img_h = img_.h;
     img.substract_mean_normalize(mean_vals, norm_vals);
 
     PNet();

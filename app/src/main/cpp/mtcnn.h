@@ -15,8 +15,9 @@
 #include <iostream>
 #include <android/log.h>
 
-#define TAG "FaceSDKNative"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
+#define TAG "FaceSDKNative"
+
 using namespace std;
 
 struct Bbox
@@ -41,7 +42,9 @@ public:
 
 	~MTCNN();
 
-	void SetMinFace(int minSize);
+	void SetMinFace(int minFaceSize);
+
+	void SetNumThreads(int numThreads);
 
 	void detect(ncnn::Mat& img_, std::vector<Bbox>& finalBbox);
 
@@ -75,10 +78,10 @@ private:
 
 	int img_w, img_h;
 
-private:
 	const float threshold[3] = { 0.8f, 0.8f, 0.8f };
-	int minsize = 120;
+	int minsize = 160;
 	const float pre_facetor = 0.709f;
+    int num_threads = 1;
 
 };
 

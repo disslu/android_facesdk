@@ -4,13 +4,12 @@
 #include <vector>
 #include "net.h"
 #include "mtcnn.h"
-#include "cpu.h"
 
 
 using namespace std;
 
-static MTCNN *mtcnn;
-bool detection_sdk_init_ok = false;
+static MTCNN *mtcnn = nullptr;
+static bool detection_sdk_init_ok = false;
 
 extern "C" {
 
@@ -48,9 +47,14 @@ Java_com_facesdk_FaceSDKNative_FaceDetectionModelInit(JNIEnv *env, jobject insta
 
     mtcnn = new MTCNN(tFaceModelDir);
 
+
     env->ReleaseStringUTFChars(faceDetectionModelPath_, faceDetectionModelPath);
     detection_sdk_init_ok = true;
-    tRet = true;
+
+    if (mtcnn != nullptr) {
+        tRet = true;
+        detection_sdk_init_ok = true;
+    }
 
     return tRet;
 }
@@ -73,6 +77,7 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
     }
 
     jbyte *imageDate = env->GetByteArrayElements(imageDate_, NULL);
+
     if (NULL == imageDate){
         LOGD("img data is null");
         return NULL;
@@ -91,9 +96,8 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
         return NULL;
     }
 
-    mtcnn->SetMinFace(120);
-
     unsigned char *faceImageCharDate = (unsigned char*) imageDate;
+
     ncnn::Mat ncnn_img;
     if (imageChannel==3) {
         ncnn_img = ncnn::Mat::from_pixels(faceImageCharDate,
@@ -107,30 +111,25 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
                                           imageHeight);
     }
 
-    int cpu_p =  ncnn::get_cpu_powersave();
-    LOGD("Native cpu power count  =%d", cpu_p);
-
-    int num_t =  ncnn::get_omp_num_threads();
-    LOGD("Native number of thread  =%d", num_t);
-
     std::vector<Bbox> finalBbox;
     mtcnn->detect(ncnn_img, finalBbox);
 
     int32_t num_face = static_cast<int32_t>(finalBbox.size());
 
-    LOGD("Native detected face number =%d", num_face);
+    LOGD("native detected face number: %d", num_face);
 
-    int out_size = 1+num_face*14;
+    int out_size = 1 + num_face*15;
     int *faceInfo = new int[out_size];
     faceInfo[0] = num_face;
     for (int i=0; i<num_face; i++) {
-        faceInfo[14*i+1] = finalBbox[i].x1;//left
-        faceInfo[14*i+2] = finalBbox[i].y1;//top
-        faceInfo[14*i+3] = finalBbox[i].x2;//right
-        faceInfo[14*i+4] = finalBbox[i].y2;//bottom
+        faceInfo[15*i+1] = finalBbox[i].score*10000;//score
+        faceInfo[15*i+2] = finalBbox[i].x1;//left
+        faceInfo[15*i+3] = finalBbox[i].y1;//top
+        faceInfo[15*i+4] = finalBbox[i].x2;//right
+        faceInfo[15*i+5] = finalBbox[i].y2;//bottom
         //store 5 keypoints [x0,x1,x2,x3,x4,y0,y1,y2,y3,y4]
         for (int j =0; j<10; j++) {
-            faceInfo[14*i+5+j] = static_cast<int>(finalBbox[i].ppoint[j]);
+            faceInfo[15*i+6+j] = static_cast<int>(finalBbox[i].ppoint[j]);
         }
     }
 
@@ -143,8 +142,34 @@ Java_com_facesdk_FaceSDKNative_FaceDetect(JNIEnv *env, jobject instance, jbyteAr
     return tFaceInfo;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_facesdk_FaceSDKNative_FaceDetectionModelUnInit(JNIEnv *env, jobject instance) {
+JNIEXPORT jboolean JNICALL Java_com_facesdk_FaceSDKNative_SetMinFaceSize(JNIEnv *env, jobject instance, jint minFaceSize) {
+    if(!detection_sdk_init_ok){
+        LOGD("sdk not inited, do nothing");
+        return false;
+    }
+
+    if(minFaceSize <= 100){
+        minFaceSize = 100;
+    }
+
+    mtcnn->SetMinFace(minFaceSize);
+
+    return true;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_facesdk_FaceSDKNative_SetThreadsNumber(JNIEnv *env, jobject instance, jint threadsNumber) {
+
+    if(!detection_sdk_init_ok){
+        LOGD("sdk not inited, do nothing");
+        return false;
+    }
+
+    mtcnn->SetNumThreads(threadsNumber);
+
+    return  true;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_facesdk_FaceSDKNative_FaceDetectionModelUnInit(JNIEnv *env, jobject instance) {
 
     jboolean tDetectionUnInit = false;
 

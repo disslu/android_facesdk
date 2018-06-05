@@ -1,16 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    signingConfigs {
-        config {
-            keyAlias 'cvte2018'
-            keyPassword 'cvte2018'
-            storeFile file('C:/Users/pingf/cvte2018.jks')
-            storePassword 'cvte2018'
-        }
-    }
     compileSdkVersion 25
-    buildToolsVersion "26.0.2"
+    buildToolsVersion '26.0.2'
     defaultConfig {
         applicationId "com.facesdk"
         minSdkVersion 20
@@ -33,22 +25,27 @@ android {
                 cppFlags "-fexceptions"
             }
         }
-
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-        debug {
-            signingConfig signingConfigs.config
-        }
     }
+
     externalNativeBuild {
         cmake {
             path "CMakeLists.txt"
         }
     }
+
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+    productFlavors {
+    }
+
 }
 
 dependencies {
@@ -59,4 +56,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.0.1'
     testCompile 'junit:junit:4.12'
     compile 'com.google.android.gms:play-services-appindexing:8.4.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
 }

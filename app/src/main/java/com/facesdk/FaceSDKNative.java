@@ -16,6 +16,12 @@ public class FaceSDKNative {
     //SDK初始化
     public native boolean FaceDetectionModelInit(String faceDetectionModelPath);
 
+    //检测的最小人脸设置 (480P miniFaceSize=80; 720P\1080 miniFaceSize=80-160)
+    public native boolean SetMinFaceSize(int minFaceSize);
+
+    //并行计算的线程设置 (推荐不要超过处理器核心数)
+    public native boolean SetThreadsNumber(int threadsNumber);
+
     //SDK人脸检测接口
     public native int[] FaceDetect(byte[] imageDate, int imageWidth , int imageHeight, int imageChannel);
 

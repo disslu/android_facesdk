@@ -1,7 +1,6 @@
 package com.facesdk;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -12,15 +11,15 @@ import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-//import com.google.android.gms.appindexing.AppIndex;
-//import com.google.android.gms.common.api.GoogleApiClient;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,19 +27,27 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-public class MainActivity extends Activity {
+//import com.google.android.gms.appindexing.AppIndex;
+//import com.google.android.gms.common.api.GoogleApiClient;
+
+public class MainActivity extends AppCompatActivity {
     private static final int SELECT_IMAGE = 1;
     static final String TAG = "MainActivity";
 
     private TextView infoResult;
     private ImageView imageView;
     private Bitmap yourSelectedImage = null;
-
-    private static FaceSDKNative faceSDKNative = new FaceSDKNative();
     private static boolean sdk_init_ok = false;
-    private static boolean sdk_model_ok = true;
-    private static boolean sdk_permission_ok = true;
+
+    private FaceSDKNative faceSDKNative = new FaceSDKNative();
+    private FaceRecognizer mFaceRecognizer = new FaceRecognizer();
+    private static String mUrl = "http://172.0.0.1:8031/identify";
+    private static String mToken = "xxxxxx";
+    private static String mGroup=  "test001";
+
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
@@ -48,11 +55,11 @@ public class MainActivity extends Activity {
     //private GoogleApiClient client;
 
     //Check Permissions
-    private static final int REQUEST_CODE_PERMISSION = 2;
-    private static String[] PERMISSIONS_REQ = {
+    private static final int PERMISSION_REQUEST_CODE = 1;
+    private static String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.CAMERA
+            Manifest.permission.INTERNET,
     };
 
 
@@ -63,31 +70,6 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-
-        // For API 23+ you need to request the read/write permissions even if they are already in your manifest.
-        int currentapiVersion = android.os.Build.VERSION.SDK_INT;
-
-        //if (currentapiVersion >= Build.VERSION_CODES.M) {
-        sdk_permission_ok = verifyPermissions(this);
-        //}
-
-        //copy model
-        try {
-            copyBigDataToSD("det1.bin");
-            copyBigDataToSD("det2.bin");
-            copyBigDataToSD("det3.bin");
-            copyBigDataToSD("det1.param");
-            copyBigDataToSD("det2.param");
-            copyBigDataToSD("det3.param");
-        } catch (IOException e) {
-            e.printStackTrace();
-            sdk_model_ok = false;
-        }
-
-        File sdDir = Environment.getExternalStorageDirectory();//get model store dir
-        String sdPath = sdDir.toString() + "/facesdk/";
-        sdk_init_ok = faceSDKNative.FaceDetectionModelInit(sdPath);
-
 
         infoResult = (TextView) findViewById(R.id.infoResult);
         imageView = (ImageView) findViewById(R.id.imageView);
@@ -101,6 +83,12 @@ public class MainActivity extends Activity {
                 startActivityForResult(i, SELECT_IMAGE);
             }
         });
+
+        //config recognize server
+        mFaceRecognizer.setUrl(mUrl);
+        mFaceRecognizer.setToken(mToken);
+        mFaceRecognizer.setGroup(mGroup);
+
 
         Button buttonDetect = (Button) findViewById(R.id.buttonDetect);
         buttonDetect.setOnClickListener(new View.OnClickListener() {
@@ -122,56 +110,81 @@ public class MainActivity extends Activity {
                 //Get Results
                if (faceInfo!=null && faceInfo.length>1) {
                    int faceNum = faceInfo[0];
-                   infoResult.setText("detect time："+timeDetectFace+"ms,   face number：" + faceNum);
-                   Log.i(TAG, "detect time："+timeDetectFace);
+                   String show_text = "detect time："+timeDetectFace+"ms,   face number：" + faceNum;
+                   Log.i(TAG, "detect take time："+timeDetectFace);
                    Log.i(TAG, "face num：" + faceNum );
 
                    Bitmap drawBitmap = yourSelectedImage.copy(Bitmap.Config.ARGB_8888, true);
                    for (int i=0; i<faceNum; i++) {
-                       int left, top, right, bottom;
+                       int mDetectScore; //face detect score
+                       int left, top, right, bottom;//face rect
                        Canvas canvas = new Canvas(drawBitmap);
                        Paint paint = new Paint();
-                       left = faceInfo[1+14*i];
-                       top = faceInfo[2+14*i];
-                       right = faceInfo[3+14*i];
-                       bottom = faceInfo[4+14*i];
+                       mDetectScore = faceInfo[1+15*i]/10000;
+                       left = faceInfo[2+15*i];
+                       top = faceInfo[3+15*i];
+                       right = faceInfo[4+15*i];
+                       bottom = faceInfo[5+15*i];
                        paint.setColor(Color.RED);
                        paint.setStyle(Paint.Style.STROKE);
                        paint.setStrokeWidth(5);
+                       paint.setTextSize(40);
                        //crop image
-                       //Bitmap cropBmp = faceSDKNative.CropImage(drawBitmap, left, top, right-left, bottom-top);
+                       long timeDetectFace_c_s = System.currentTimeMillis();
+                       Bitmap cropBmp = faceSDKNative.CropImage(drawBitmap, left, top, right-left, bottom-top);
+                       long timeDetectFace_c_e = System.currentTimeMillis();
+                       Log.i(TAG, "crop take time："+ (timeDetectFace_c_e - timeDetectFace_c_s));
 
                        //just for debug
                        //faceSDKNative.SaveImage(cropBmp);
 
                        //encode img to base64
-                       //String encodeImg = faceSDKNative.EncodeBase64(cropBmp);
+                       long timeDetectFace_e_s = System.currentTimeMillis();
+                       String encodeImg = faceSDKNative.EncodeBase64(cropBmp);
+                       long timeDetectFace_e_e = System.currentTimeMillis();
+                       Log.i(TAG, " encode take time："+ (timeDetectFace_e_e - timeDetectFace_e_s));
+
+                       long timeDetectFace_r_s = System.currentTimeMillis();
+                       mFaceRecognizer.recognize(
+                               encodeImg,
+                              new FaceRecognizer.RecognizerCallback() {
+                                   @Override
+                                   public void onRespond(String response) {
+                                       long timeDetectFace_r_e = System.currentTimeMillis();
+                                       Log.i(TAG, " recognize take time："+ (timeDetectFace_r_e - timeDetectFace_r_s));
+                                       Log.e(TAG, "onRespond: " + response);
+                                       try {
+                                           JSONObject jsonObject = new JSONObject(response);
+                                           String mRecName = jsonObject.getString("user_name"); //recognize name
+                                           double mRecScore = jsonObject.getDouble("score");    //recognize score
+                                           Log.e(TAG, "onRespond: recognize Name :" + mRecName + " recognize Score: " + mRecScore);
+                                       } catch (JSONException e) {
+                                           Log.e(TAG, "onRespond Json parse: ", e);
+                                       }
+                                   }
+
+                                   @Override
+                                   public void onNetworkFail() {
+                                       Log.e(TAG, "onNetworkFail: ");
+                                   }
+                               });
 
                        //Draw rect
                        canvas.drawRect(left, top, right, bottom, paint);
+                       //canvas.drawText(mDetectScore, left, top, paint);
 
                        //Draw landmark
                        for (int j=0; j<5; j++) {
-                           int pointX = faceInfo[5+j+14*i];
-                           int pointY = faceInfo[5+j+5+14*i];
+                           int pointX = faceInfo[6+j+15*i];
+                           int pointY = faceInfo[6+j+5+15*i];
                            canvas.drawCircle(pointX, pointY, 2, paint);
                        }
 
-
                    }
+                   infoResult.setText(show_text);
                    imageView.setImageBitmap(drawBitmap);
                 }else{
-                   String debug = "sdk error: no face found, \n";
-                   if(!sdk_init_ok) {
-                       debug += "sdk_init_error, may models not flush, please restart apk\n";
-                   }
-                   if(!sdk_model_ok) {
-                       debug +="sdk_model_copy, may not have write sdcar permission, please restart apk\n";
-                   }
-                   if(!sdk_permission_ok) {
-                       debug += "should access permission, please restart apk\n";
-                   }
-                   infoResult.setText(debug);
+                   infoResult.setText("no face found");
                }
 
             }
@@ -181,6 +194,59 @@ public class MainActivity extends Activity {
         //client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        checkPermissions();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Fail to request permission", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+            }
+            onPermissionGranted();
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    private void onPermissionGranted() {
+        copyModels();
+
+        File sdDir = Environment.getExternalStorageDirectory();
+        String sdPath = sdDir.toString() + "/facesdk/";
+        sdk_init_ok = faceSDKNative.FaceDetectionModelInit(sdPath);
+        faceSDKNative.SetThreadsNumber(1); //set with your CPU kernel number, range [1-8]
+        faceSDKNative.SetMinFaceSize(160); //adjust with your Input Image Resolution Size, range [80-200]
+        Log.d(TAG, "sdk init : "+ sdk_init_ok);
+        if (!sdk_init_ok) {
+            Toast.makeText(this, "SDK Native init failed, as cant't read model", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
+
+    private void copyModels() {
+        try {
+            copyBigDataToSD("det1.bin");
+            copyBigDataToSD("det2.bin");
+            copyBigDataToSD("det3.bin");
+            copyBigDataToSD("det1.param");
+            copyBigDataToSD("det2.param");
+            copyBigDataToSD("det3.param");
+        } catch (IOException e) {
+            Log.e(TAG, "copyModels: ", e);
+            Toast.makeText(this, "Copy model failed", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -214,20 +280,9 @@ public class MainActivity extends Activity {
         BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
 
         // The new size we want to scale to
-        final int REQUIRED_SIZE = 400;
 
         //// Find the correct scale value. It should be the power of 2.
-        int width_tmp = o.outWidth, height_tmp = o.outHeight;
-        int scale = 1;
-        while (true) {
-            if (width_tmp / 2 < REQUIRED_SIZE
-                    || height_tmp / 2 < REQUIRED_SIZE) {
-                break;
-            }
-            width_tmp /= 2;
-            height_tmp /= 2;
-            scale *= 2;
-        }
+        int scale = o.outHeight/1080;
 
         // Decode with inSampleSize
         BitmapFactory.Options o2 = new BitmapFactory.Options();
@@ -245,7 +300,7 @@ public class MainActivity extends Activity {
         return temp;
     }
 
-    private boolean copyBigDataToSD(String strOutFileName) throws IOException {
+    private void copyBigDataToSD(String strOutFileName) throws IOException {
         Log.i(TAG, "start copy file " + strOutFileName);
         File sdDir = Environment.getExternalStorageDirectory();//get root dir
         File file = new File(sdDir.toString()+"/facesdk/");
@@ -257,7 +312,7 @@ public class MainActivity extends Activity {
         File f = new File(tmpFile);
         if (f.exists()) {
             Log.i(TAG, "file exists " + strOutFileName);
-            return true;
+            return;
         }
         InputStream myInput;
         java.io.OutputStream myOutput = new FileOutputStream(sdDir.toString()+"/facesdk/"+ strOutFileName);
@@ -272,34 +327,25 @@ public class MainActivity extends Activity {
         myInput.close();
         myOutput.close();
         Log.i(TAG, "end copy file " + strOutFileName);
-        return true;
+
     }
 
-    /**
-     * Checks if the app has permission to write to device storage or open camera
-     * If the app does not has permission then the user will be prompted to grant permissions
-     *
-     * @param activity
-     */
-    private static boolean verifyPermissions(Activity activity) {
-        // Check if we have write permission
-        int write_permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        int read_permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE);
-        int camera_permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.CAMERA);
-
-        if (write_permission != PackageManager.PERMISSION_GRANTED ||
-                read_permission != PackageManager.PERMISSION_GRANTED ||
-                camera_permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    activity,
-                    PERMISSIONS_REQ,
-                    REQUEST_CODE_PERMISSION
-            );
-            return false;
-        } else {
-            return true;
+    private void checkPermissions() {
+        boolean allPermissionGranted = true;
+        for (String permission : PERMISSIONS) {
+            int result = ActivityCompat.checkSelfPermission(this, permission);
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                allPermissionGranted = false;
+                break;
+            }
         }
+
+        if (allPermissionGranted) {
+            onPermissionGranted();
+            return;
+        }
+
+        ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSION_REQUEST_CODE);
     }
 
 }
