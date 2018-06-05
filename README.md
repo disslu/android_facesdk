@@ -102,4 +102,4 @@ for (int i=0; i<faceNum; i++) {
 
 # SDK Application example
 
-<img src="https://gitlab.gz.cvte.cn/luopingfeng/android_face_sdk_example/raw/master/test_data/tester2.png" width="360" height="640">
+-![](https://github.com/pingfengluo/android_facesdk/raw/master/test_data/tester1.png)
