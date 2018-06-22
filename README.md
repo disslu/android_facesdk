@@ -45,9 +45,9 @@ for (int i=0; i<faceNum; i++) {
 
 # Speed
 
-|device              |image size   |  detect     |    crop      |    encode     |   recognize  |
-|-------------------------|-------------|-------------|--------------|---------------|--------------|
-|GalaxyS6 Quad A57@2.1GHZ |480P         |   18ms      |    2ms       |    16ms       |    400ms     |
-|GalaxyS6 Quad A57@2.1GHZ |720P         |   50ms      |    2ms       |    30ms       |    600ms     |
-|GalaxyS6 Quad A57@2.1GHZ |1080P        |  110ms      |    2ms       |    60ms       |    1100ms    |
+|device              |image size   |  detect     |  
+|-------------------------|-------------|-------------|
+|GalaxyS6 Quad A57@2.1GHZ |480P         |   18ms      |
+|GalaxyS6 Quad A57@2.1GHZ |720P         |   50ms      |
+|GalaxyS6 Quad A57@2.1GHZ |1080P        |  110ms      |
 
